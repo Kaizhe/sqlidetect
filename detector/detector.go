@@ -80,11 +80,11 @@ func (d *Detector) Run() {
 		r := bufio.NewReader(pr)
 		for {
 			line, _, err := r.ReadLine()
-			// process buf
+			
 			if err != nil && err != io.EOF {
-				log.Fatal(err)
+				log.Panic(err)
 			}
-			// s is the sql statement passed in from tshark
+			// line is the sql statement passed in from tshark
 			fp := fingerprintSQL(string(line))
 
 			d.checkSQLFingerPrint(fp)
@@ -97,7 +97,7 @@ func (d *Detector) Run() {
 	// run the command, which writes all output to the PipeWriter
 	// which then ends up in the PipeReader
 	if err := cmd.Run(); err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 }
 
