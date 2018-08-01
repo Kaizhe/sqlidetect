@@ -1,4 +1,4 @@
-package main
+package detector
 
 import (
 	"log"
@@ -13,13 +13,19 @@ const (
 	DDL
 )
 
-// SQLStatementFP is SQL Statement Fingerprint structure
-type SQLStatementFP struct {
+// SQLFP is SQL Statement Fingerprint structure
+type SQLFP struct {
 	StatementFP string
 	SQLType     int
 }
 
-func fingerprintSQL(matchedSQL string) SQLStatementFP {
+type AnomalySQLFP struct {
+	SqlFP SQLFP
+	Resolved bool
+	Timestamp int64
+}
+
+func fingerprintSQL(matchedSQL string) SQLFP {
 	var sqlType int
 
 	tokens := sqlParser.NewStringTokenizer(matchedSQL)
@@ -60,12 +66,12 @@ func fingerprintSQL(matchedSQL string) SQLStatementFP {
 			buf.Reset()
 			buf.Myprintf("%v", stmt)
 
-			return SQLStatementFP{buf.ParsedQuery().Query, sqlType}
+			return SQLFP{buf.ParsedQuery().Query, sqlType}
 
 		} else {
 			log.Println("something wrong here: " + matchedSQL)
 			break
 		}
 	}
-	return SQLStatementFP{}
+	return SQLFP{}
 }
