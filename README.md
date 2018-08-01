@@ -1,0 +1,2 @@
+# sqlidetect
+Detect SQLi
