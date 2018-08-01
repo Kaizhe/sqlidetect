@@ -60,11 +60,7 @@ func (d *Detector) checkSQLFingerPrint(fp SQLFP) {
 	} else {
 		if _, exists := d.Model[fp]; !exists {
 			// fp never seen before
-			anomalySQLFP := AnomalySQLFP{
-				fp,
-				false,
-				time.Now().UnixNano(),
-			}
+			anomalySQLFP := NewAnomalySQLFP(fp, false, time.Now().UnixNano())
 			d.AnomalySQLMap[anomalySQLFP] = true
 		}
 	}

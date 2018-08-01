@@ -25,6 +25,15 @@ type AnomalySQLFP struct {
 	Timestamp int64
 }
 
+// NewAnomalySQLFP returns a new anomalous SQL finger print
+func NewAnomalySQLFP(sqlFP SQLFP, resolved bool, time int64) AnomalySQLFP {
+	return AnomalySQLFP{
+		sqlFP,
+		resolved,
+		time,
+	}
+}
+
 func fingerprintSQL(matchedSQL string) SQLFP {
 	var sqlType int
 
