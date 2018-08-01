@@ -1,0 +1,15 @@
+#!/bin/sh
+
+set -eux
+
+rm -f container/bin/sqlidetect
+
+go fmt ./
+
+CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o container/bin/sqlidetect .
+
+cd container
+
+docker build -t kaizheh/sqlidetect .
+
+docker push kaizheh/sqlidetect

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+go get github.com/youtube/vitess/go/vt/sqlparser
+go get github.com/stretchr/testify/assert
