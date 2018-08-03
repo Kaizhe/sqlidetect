@@ -14,9 +14,14 @@ const (
 	Detect
 )
 
+const (
+	timeout = 30 * time.Second
+)
+
 var (
 	tshark = "tshark"
 	cmdArgs = []string{"-i", "docker0", "-Y", "mysql.command==3", "-T", "fields", "-e", "mysql.query"}
+	bufSize = 4 * 4 * 1024
 )
 
 type Detector struct {
@@ -42,9 +47,18 @@ func (d *Detector) ImportModel(model map[SQLFP]bool) {
 	d.Model = model
 }
 
+// GetStatus returns the model status
+func (d *Detector) GetStatus() uint {
+	return d.ModelStatus
+}
+
 // UpdateStatus updates detector status
-func (d *Detector) UpdateStatus(status uint) {
+func (d *Detector) UpdateStatus(status uint) error {
+	if status != Detect && status != Train {
+		return fmt.Errorf("invalid status")
+	}
 	d.ModelStatus = status
+	return nil
 }
 
 // ResolveAnomaly resolve anomalous SQL FP
@@ -55,13 +69,15 @@ func (d *Detector) ResolveAnomaly(fp AnomalySQLFP) {
 
 // checkSQLFingerPrint checks SQL statement finger print
 func (d *Detector) checkSQLFingerPrint(fp SQLFP) {
-	if d.ModelStatus == Train {
+	fmt.Printf("Model Status: %d; Model Size: %d\n", d.ModelStatus, len(d.Model))
+	if d.GetStatus() == Train {
 		d.Model[fp] = true
 	} else {
 		if _, exists := d.Model[fp]; !exists {
 			// fp never seen before
 			anomalySQLFP := NewAnomalySQLFP(fp, false, time.Now().UnixNano())
 			d.AnomalySQLMap[anomalySQLFP] = true
+			fmt.Printf("Anomaly: %s\n", anomalySQLFP.SqlFP.StatementFP)
 		}
 	}
 }
@@ -69,7 +85,25 @@ func (d *Detector) checkSQLFingerPrint(fp SQLFP) {
 // Run detector starts to run
 func (d *Detector) Run() {
 	pr, pw := io.Pipe()
+	t := time.NewTicker(timeout)
 	defer pw.Close()
+
+	// update model status when there is no change to the model within 30 seconds
+	go func(initSize int) {
+		var size, oldSize int
+		oldSize = initSize
+		for {
+			select {
+			case <-t.C:
+				size = len(d.Model)
+				if d.ModelStatus != Detect && size == oldSize && size > 0 {
+					d.UpdateStatus(Detect)
+				}
+			}
+			oldSize = size
+			time.Sleep(1 * time.Second)
+		}
+	}(0)
 
 	// tell the command to write to our pipe
 	cmd := exec.Command(tshark, cmdArgs...)
@@ -77,19 +111,19 @@ func (d *Detector) Run() {
 
 	go func() {
 		defer pr.Close()
-		r := bufio.NewReader(pr)
+		r := bufio.NewReaderSize(pr, bufSize)
 		for {
 			line, _, err := r.ReadLine()
-			
+
 			if err != nil && err != io.EOF {
 				log.Panic(err)
 			}
 			// line is the sql statement passed in from tshark
 			fp := fingerprintSQL(string(line))
 
-			d.checkSQLFingerPrint(fp)
-
-			fmt.Println(fp.StatementFP)
+			if !fp.IsEmpty() {
+				d.checkSQLFingerPrint(fp)
+			}
 		}
 
 	}()

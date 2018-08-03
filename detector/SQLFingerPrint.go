@@ -1,7 +1,7 @@
 package detector
 
 import (
-	"log"
+	"fmt"
 
 	sqlParser "github.com/youtube/vitess/go/vt/sqlparser"
 )
@@ -23,6 +23,10 @@ type AnomalySQLFP struct {
 	SqlFP SQLFP
 	Resolved bool
 	Timestamp int64
+}
+
+func (fp SQLFP) IsEmpty() bool {
+	return len(fp.StatementFP) == 0
 }
 
 // NewAnomalySQLFP returns a new anomalous SQL finger print
@@ -78,7 +82,7 @@ func fingerprintSQL(matchedSQL string) SQLFP {
 			return SQLFP{buf.ParsedQuery().Query, sqlType}
 
 		} else {
-			log.Println("something wrong here: " + matchedSQL)
+			fmt.Printf("unrecognized SQL: %s\n", matchedSQL)
 			break
 		}
 	}
