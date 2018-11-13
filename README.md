@@ -2,7 +2,7 @@
 
 ## Goal 
 
-Detect potential SQL Injection in Containerized Enviroment.
+Detect potential SQL Injection in containerized microservices enviroment.
 
 ## Background
 
